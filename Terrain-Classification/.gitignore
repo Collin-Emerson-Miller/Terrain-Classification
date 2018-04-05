@@ -1,0 +1,6 @@
+TrainingModel.ipynb
+ImportingDataCorpus.ipynb
+terrain_data_collection/terrain_images/*
+*.ipynb
+/models
+config.txt
