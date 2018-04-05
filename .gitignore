@@ -1,8 +1,6 @@
-Terrain-Classification/textures/*
-Terrain-Classification/test.jpeg
 Terrain-Classification/DrawingBoard.ipynb
+Terrain-Classification/*.ipynb
 .idea/
 .ipynb_checkpoints/
 Terrain-Classification/weights/*
-node_modules/
-Terrain-Classification/terrain_data_collection/terrain_images/
+Terrain-Classification/terrain_images/*
