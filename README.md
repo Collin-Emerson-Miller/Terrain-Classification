@@ -1,12 +1,19 @@
 # Terrain-Classification
 This is the repository for classifying terrain such as sand rock and gravel using machine learning.
 
+## Installation
+
 To install all necessary packages run:
 ```
 pip install -r requirements.txt
 ```
 
-To train a model;
+## Setup
+This section details how to set up the terrain classification application.
+
+
+### Training a model
+To train a model open a terminal and run
 
 ```
 python train_model.py <model_name> <corpus_path>
@@ -40,7 +47,7 @@ where the directory tree is:
         -   <image_n.jpg>
 ```
 
-An example:
+#### Example
 ```
 python train_model.py inceptionV3 terrain_images
 ```
