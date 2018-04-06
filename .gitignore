@@ -4,3 +4,4 @@ Terrain-Classification/*.ipynb
 .ipynb_checkpoints/
 Terrain-Classification/weights/*
 Terrain-Classification/terrain_images/*
+!Terrain-Classification/color_classification.ipynb
