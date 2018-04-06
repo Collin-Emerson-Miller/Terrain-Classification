@@ -31,10 +31,12 @@ def frame_init(rgb, depth):
 
     Depth = np.swapaxes(depth, 0, 1)
     Depth = np.flip(Depth,1)
-    Depth = np.divide(Depth, 0xFFFF)  # Normalize into [0,1] range
+    # Depth = np.divide(Depth, 0xFFFF)  # Normalize into [0,1] range
+    Depth = (Depth - Depth.min())/(Depth.max() - Depth.min())
+
 
     PointCloud = Canonicalize(Depth)
-    PointCloud = list(np.asarray(PointCloud,dtype=np.float32).flatten())
+    PointCloud = list(np.array(PointCloud,dtype=np.float32).flatten())
     PointColor = list(Color.flatten())
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo)
@@ -72,7 +74,7 @@ glLoadIdentity()
 gluPerspective(45, (display[0] / display[1]), 0.01, 100.0)
 glMatrixMode(GL_MODELVIEW)
 glLoadIdentity()
-gluLookAt(1.5, 0.5, 1.5,
+gluLookAt(0.5, 0.5, 1.5,
           -0.5, -0.5, -0.5,
           0.0, 1.0, 0.0)
 
@@ -98,6 +100,8 @@ if __name__ == "__main__":
         frame = get_video()
         # get a frame from depth sensor
         depth = get_depth()
+
+        cv2.imshow("Depth", depth.astype(np.uint8))
 
         frame_init(frame.astype(np.float32), depth.astype(np.float32))
 

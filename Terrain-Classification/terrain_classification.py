@@ -64,7 +64,7 @@ if __name__ == "__main__":
 
         cv2.imshow("img", frame)
         cv2.imshow("depth", depth.astype(np.uint8))
-        # print(classes)
+        print(classes)
 
         # quit program when 'esc' key is pressed
         k = cv2.waitKey(5) & 0xFF

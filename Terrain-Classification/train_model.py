@@ -10,7 +10,6 @@ import glob
 import os
 import json
 
-import utils
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("model_name", help="Specify the name of the model to train.", default="inceptionV3")
@@ -82,6 +81,11 @@ elif MODEL_NAME == "resnet50":
     from keras.applications.resnet50 import ResNet50
 
     model = ResNet50(classes=len(classes), weights=None, input_tensor=input_tensor)
+elif MODEL_NAME == "simplenet":
+    from models import simplenet
+    model = simplenet.get_model()
+
+
 
 else:
     print("Using inceptionV3")
