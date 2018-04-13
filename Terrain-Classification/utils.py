@@ -120,3 +120,22 @@ def Canonicalize(Depth):
         for X in range(Depth.shape[0])
         for Y in range(Depth.shape[1])
     ]
+
+def class_label_overlay(img, assignment_mask, mask_opacity=.5):
+    # assignment mask needs to be of type uint8 to lay mask over image.
+    output = img.copy()
+    assignment_mask = assignment_mask.astype('uint8')
+    
+    # Apply mask to image.
+    overlay = assignment_mask
+    output = cv2.addWeighted(overlay, mask_opacity, output, 1 - mask_opacity,
+                    0, overlay)
+    
+    return output
+
+def get_spaced_colors(n):
+    max_value = 16581375  # 255**3
+    interval = int(max_value / n)
+    colors = [hex(I)[2:].zfill(6) for I in range(0, max_value, interval)]
+
+    return [(int(i[:2], 16), int(i[2:4], 16), int(i[4:], 16)) for i in colors]

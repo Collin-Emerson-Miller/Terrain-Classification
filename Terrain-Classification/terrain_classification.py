@@ -8,7 +8,7 @@ import numpy as np
 from keras.applications import InceptionV3
 from keras.layers import Input
 
-from utils import get_depth, get_video, prepare_images
+from utils import get_depth, get_video, prepare_images, get_spaced_colors, class_label_overlay
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("model_name", help="Specify the name of the model to train.", default="inceptionV3")
@@ -24,6 +24,8 @@ print(WEIGHT_PATH)
 # if os.path.exists(WEIGHT_PATH):
 #     raise ValueError("Path to weights does not exist.  Did you provide the correct path?")
 
+n_classes = 2
+
 if __name__ == "__main__":
 
     n_slices = 2
@@ -38,7 +40,7 @@ if __name__ == "__main__":
 
     input_tensor = Input((slice_height, slice_width, 3), dtype=np.float32)
 
-    model = InceptionV3(classes=2, weights=None, input_tensor=input_tensor)
+    model = InceptionV3(classes=n_classes, weights=None, input_tensor=input_tensor)
 
     print("Compiling Model...")
     model.compile(optimizer='rmsprop',
@@ -48,6 +50,8 @@ if __name__ == "__main__":
     print("Loading Model Weights...")
     model.load_weights(WEIGHT_PATH)
     print("Weights Loaded.")
+
+    colors = get_spaced_colors(n_classes)
 
     while True:
 
@@ -62,8 +66,20 @@ if __name__ == "__main__":
         preds = model.predict(X)
         classes = np.argmax(preds, axis=1).reshape((height, width))
 
+        # Initialize the class assignment mask.
+        assignment_mask = np.zeros((classes.shape[0], classes.shape[1], 3))
+
+        # Fill class labels into assignment mask.
+        for label in xrange(n_classes):
+            assignment_mask[np.isin(classes, label)] = colors[label]
+
+        assignment_mask = cv2.resize(assignment_mask, image_size, interpolation=cv2.INTER_CUBIC)
+
+        overlay = class_label_overlay(frame, assignment_mask)
+
         cv2.imshow("img", frame)
         cv2.imshow("depth", depth.astype(np.uint8))
+        cv2.imshow("overlay", overlay)
         print(classes)
 
         # quit program when 'esc' key is pressed

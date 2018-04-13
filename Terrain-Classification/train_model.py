@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
@@ -9,7 +8,8 @@ import datetime
 import glob
 import os
 import json
-
+import utils
+import random
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("model_name", help="Specify the name of the model to train.", default="inceptionV3")
@@ -60,7 +60,16 @@ for i, c in enumerate(classes):
         image_list += images
         label_list += [i] * len(images)
 
+
+c = list(zip(image_list, label_list))
+
+random.shuffle(c)
+
+image_list, label_list = zip(*c)
+
+
 config_dict["classes"] = dict(zip(classes, range(len(classes))))
+n_classes = len(set(label_list))
 
 with open("config.txt", "w") as f:
     f.write(json.dumps(config_dict))
@@ -69,28 +78,28 @@ g = utils.input_image_generator(image_list, label_list, IMAGE_SIZE, RATIO, N_SLI
 
 a = next(g)[0][0]
 
-input_tensor = Input(a.shape, dtype=a.dtype)
-
 if MODEL_NAME == "vgg16":
     print("Using vgg16")
+    input_tensor = Input(a.shape, dtype=a.dtype)
     from keras.applications.vgg16 import VGG16
 
     model = VGG16(classes=len(classes), weights=None, input_tensor=input_tensor)
 elif MODEL_NAME == "resnet50":
     print("Using resnet50")
+    input_tensor = Input(a.shape, dtype=a.dtype)
     from keras.applications.resnet50 import ResNet50
 
     model = ResNet50(classes=len(classes), weights=None, input_tensor=input_tensor)
 elif MODEL_NAME == "simplenet":
     from models import simplenet
-    model = simplenet.get_model()
+    model = simplenet.get_model(a.shape, n_classes)
 
 
 
 else:
     print("Using inceptionV3")
     from keras.applications.inception_v3 import InceptionV3
-
+    input_tensor = Input(a.shape, dtype=a.dtype)
     model = InceptionV3(classes=len(classes), weights=None, input_tensor=input_tensor)
 
 print("Compiling Model...")
