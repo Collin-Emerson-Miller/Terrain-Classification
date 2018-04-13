@@ -8,7 +8,7 @@ import numpy as np
 import yaml
 import os
 from keras.models import model_from_json
-from utils import get_depth, get_video, prepare_images
+from utils import get_depth, get_video, prepare_images, class_label_overlay, get_spaced_colors
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("model_name", help="Specify the name of the model to train.", default="squeezenet")
@@ -18,6 +18,8 @@ args = parser.parse_args()
 MODEL_NAME = args.model_name.lower()
 
 print(MODEL_NAME)
+
+n_classes = 2
 
 if __name__ == "__main__":
 
@@ -46,6 +48,8 @@ if __name__ == "__main__":
     model.load_weights(os.path.join('models', MODEL_NAME + ".h5"))
     print("Loaded model from disk")
 
+    colors = get_spaced_colors(n_classes)
+
     while True:
 
         # get a frame from RGB camera
@@ -59,8 +63,20 @@ if __name__ == "__main__":
         preds = model.predict(X)
         classes = np.argmax(preds, axis=1).reshape((n_slices_h, n_slices_v))
 
+        # Initialize the class assignment mask.
+        assignment_mask = np.zeros((classes.shape[0], classes.shape[1], 3))
+
+        # Fill class labels into assignment mask.
+        for label in xrange(n_classes):
+            assignment_mask[np.isin(classes, label)] = colors[label]
+
+        assignment_mask = cv2.resize(assignment_mask, image_size, interpolation=cv2.INTER_CUBIC)
+
+        overlay = class_label_overlay(frame, assignment_mask)
+
         cv2.imshow("img", frame)
         cv2.imshow("depth", depth.astype(np.uint8))
+        cv2.imshow("overlay", overlay)
         print(classes)
 
         # quit program when 'esc' key is pressed
