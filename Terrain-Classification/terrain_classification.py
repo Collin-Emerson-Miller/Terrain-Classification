@@ -22,6 +22,8 @@ MODEL_NAME = args.model_name.lower()
 
 print(MODEL_NAME)
 
+clock = pygame.time.Clock()
+
 
 def Origin():
     glBegin(GL_LINES)
@@ -44,35 +46,37 @@ def frame_init(rgb, depth):
     Color = np.divide(Color, 0xFF)  # Normalize into [0,1] range
 
     Depth = np.swapaxes(depth, 0, 1)
-    Depth = np.flip(Depth,1)
-    #Depth = np.divide(Depth, 0b11111111111)  # Normalize into [0,1] range
-    Depth = (Depth - Depth.min())/(Depth.max() - Depth.min())
-
+    Depth = np.flip(Depth, 1)
+    Depth = 3 * np.divide(Depth, 0b11111111111)  # Normalize into [0,1] range
 
     PointCloud = Canonicalize(Depth)
-    PointCloud = list(np.array(PointCloud,dtype=np.float32).flatten())
+    PointCloud = list(np.array(PointCloud, dtype=np.float32).flatten())
     PointColor = list(Color.flatten())
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo)
     glBufferSubData(GL_ARRAY_BUFFER,
                     0,
-                 len(PointCloud) * 4,
-                 (ctypes.c_float * len(PointCloud))(*PointCloud))
+                    len(PointCloud) * 4,
+                    (ctypes.c_float * len(PointCloud))(*PointCloud))
     glEnableClientState(GL_VERTEX_ARRAY)
     glVertexPointer(3, GL_FLOAT, 0, None)
 
     glBindBuffer(GL_ARRAY_BUFFER, cbo)
     glBufferSubData(GL_ARRAY_BUFFER,
                     0,
-                 len(PointColor) * 4,
-                 (ctypes.c_float * len(PointColor))(*PointColor))
+                    len(PointColor) * 4,
+                    (ctypes.c_float * len(PointColor))(*PointColor))
     glEnableClientState(GL_COLOR_ARRAY)
     glColorPointer(3, GL_FLOAT, 0, None)
+
+    glMatrixMode(GL_MODELVIEW)
+    glRotatef(10 * (clock.tick() / 1000), 0, 1, 0);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glDrawArrays(GL_POINTS, 0, len(PointCloud))
     Origin()
     pygame.display.flip()
+
 
 # Run once
 pygame.init()
@@ -97,7 +101,7 @@ vbo = glGenBuffers(1)
 cbo = glGenBuffers(1)
 glBindBuffer(GL_ARRAY_BUFFER, vbo)
 glBufferData(GL_ARRAY_BUFFER,
-             640*480 * 3 * 4,
+             640 * 480 * 3 * 4,
              None,
              GL_STREAM_DRAW)
 glEnableClientState(GL_VERTEX_ARRAY)
@@ -105,7 +109,7 @@ glVertexPointer(3, GL_FLOAT, 0, None)
 
 glBindBuffer(GL_ARRAY_BUFFER, cbo)
 glBufferData(GL_ARRAY_BUFFER,
-             640*480 * 3 * 4,
+             640 * 480 * 3 * 4,
              None,
              GL_STREAM_DRAW)
 glEnableClientState(GL_COLOR_ARRAY)
@@ -138,7 +142,7 @@ if __name__ == "__main__":
     model.load_weights(os.path.join('models', MODEL_NAME + ".h5"))
     print("Loaded model from disk")
 
-    colors = [(255, 255, 255), (0,128,0)]
+    colors = [(255, 255, 255), (0, 128, 0)]
 
     while True:
 
@@ -160,9 +164,14 @@ if __name__ == "__main__":
         for label in xrange(len(classes)):
             assignment_mask[np.isin(labels, label)] = colors[label]
 
-        assignment_mask = cv2.resize(assignment_mask, image_size, interpolation=cv2.INTER_CUBIC)
+        assignment_mask = cv2.resize(assignment_mask, image_size, interpolation=cv2.INTER_NEAREST)
 
-        overlay = class_label_overlay(frame, assignment_mask)
+        overlay = class_label_overlay(frame, assignment_mask, mask_opacity=0.3)
+
+        overlay[np.isin(depth, xrange(1200))] = (0, 0, 0)
+
+        # overlay = cv2.resize(overlay, (800, 800), interpolation=cv2.INTER_CUBIC)
+        # depth = cv2.resize(depth, (800, 800), interpolation=cv2.INTER_CUBIC)
 
         frame_init(overlay.astype(np.float32), depth.astype(np.float32))
 
