@@ -7,7 +7,6 @@ import cv2
 import numpy as np
 import yaml
 import os
-from keras.layers import Input
 from keras.models import model_from_json
 from utils import get_depth, get_video, prepare_images
 
