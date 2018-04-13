@@ -5,49 +5,47 @@ import argparse
 
 import cv2
 import numpy as np
-from keras.applications import InceptionV3
+import yaml
+import os
 from keras.layers import Input
-
+from keras.models import model_from_json
 from utils import get_depth, get_video, prepare_images
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument("model_name", help="Specify the name of the model to train.", default="inceptionV3")
-parser.add_argument("weight_path", help="The directory to save the weights of the model.", default="weights")
+parser.add_argument("model_name", help="Specify the name of the model to train.", default="squeezenet")
 
 args = parser.parse_args()
 
 MODEL_NAME = args.model_name.lower()
-WEIGHT_PATH = args.weight_path
 
-print(WEIGHT_PATH)
-
-# if os.path.exists(WEIGHT_PATH):
-#     raise ValueError("Path to weights does not exist.  Did you provide the correct path?")
+print(MODEL_NAME)
 
 if __name__ == "__main__":
 
-    n_slices = 2
-    ratio = (4, 3)
-    image_size = (640, 480)
+    # Load config
+    with open('models/{}_config.yml'.format(MODEL_NAME), 'r') as config_file:
+        config = yaml.load(config_file)
 
-    height = n_slices * ratio[1]
-    width = n_slices * ratio[0]
+    print(config)
 
-    slice_height = int(image_size[1] / height)
-    slice_width = int(image_size[0] / width)
+    n_slices = config['input_config']['n_slices']
+    ratio = config['input_config']['ratio']
+    image_size = config['input_config']['image_size']
+    slice_height = config['input_config']['slice_height']
+    slice_width = config['input_config']['slice_width']
+    classes = config['input_config']['classes']
+    n_slices_v = config['input_config']['n_slices_v']
+    n_slices_h = config['input_config']['n_slices_h']
 
-    input_tensor = Input((slice_height, slice_width, 3), dtype=np.float32)
+    # load json and create model
+    json_file = open(os.path.join('models', MODEL_NAME + ".json"), 'r')
+    model_json = json_file.read()
+    json_file.close()
+    model = model_from_json(model_json)
 
-    model = InceptionV3(classes=2, weights=None, input_tensor=input_tensor)
-
-    print("Compiling Model...")
-    model.compile(optimizer='rmsprop',
-                  loss='categorical_crossentropy',
-                  metrics=['accuracy'])
-
-    print("Loading Model Weights...")
-    model.load_weights(WEIGHT_PATH)
-    print("Weights Loaded.")
+    # load weights into new model
+    model.load_weights(os.path.join('models', MODEL_NAME + ".h5"))
+    print("Loaded model from disk")
 
     while True:
 
@@ -60,7 +58,7 @@ if __name__ == "__main__":
         X = X.astype(np.float32)
 
         preds = model.predict(X)
-        classes = np.argmax(preds, axis=1).reshape((height, width))
+        classes = np.argmax(preds, axis=1).reshape((n_slices_h, n_slices_v))
 
         cv2.imshow("img", frame)
         cv2.imshow("depth", depth.astype(np.uint8))
