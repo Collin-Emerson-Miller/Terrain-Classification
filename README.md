@@ -1,5 +1,8 @@
 # Terrain-Classification
-This is the repository for classifying terrain such as sand rock and gravel using machine learning.
+
+Terrain-Classification is an open-source 3-D point cloud/terrain classification application.  
+Terrain-Classification uses RGB-D images from the X-Box Kinect to generate a point cloud that
+contains terrain classifications for each point.
 
 ## Installation
 
@@ -8,7 +11,7 @@ To install all necessary packages run:
 pip install -r requirements.txt
 ```
 
-## Setup
+## Usage
 This section details how to set up the terrain classification application.
 
 
