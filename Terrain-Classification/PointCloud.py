@@ -60,6 +60,7 @@ def frame_init(rgb, depth):
     Origin()
     pygame.display.flip()
 
+
 # Run once
 pygame.init()
 display = (800, 600)

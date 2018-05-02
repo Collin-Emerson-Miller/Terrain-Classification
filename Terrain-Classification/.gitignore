@@ -2,5 +2,5 @@ TrainingModel.ipynb
 ImportingDataCorpus.ipynb
 terrain_data_collection/terrain_images/*
 *.ipynb
-/models
+/models/*.h5
 config.txt

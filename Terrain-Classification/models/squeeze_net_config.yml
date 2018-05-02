@@ -1,0 +1,13 @@
+input_config:
+  classes:
+  - concrete
+  - grass
+  image_size: !!python/tuple
+  - 640
+  - 480
+  n_slices: 4
+  ratio: !!python/tuple
+  - 4
+  - 3
+  slice_height: 40
+  slice_width: 40

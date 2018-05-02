@@ -1,0 +1,10 @@
+input_config:
+  image_size: !!python/tuple
+  - 640
+  - 480
+  n_slices: 1
+  ratio: !!python/tuple
+  - 4
+  - 3
+  slice_height: 160
+  slice_width: 160
