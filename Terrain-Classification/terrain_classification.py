@@ -66,6 +66,8 @@ if __name__ == "__main__":
         preds = model.predict(X)
         classes = np.argmax(preds, axis=1).reshape((height, width))
 
+        classes = np.rot90(classes)
+
         # Initialize the class assignment mask.
         assignment_mask = np.zeros((classes.shape[0], classes.shape[1], 3))
 
@@ -73,7 +75,7 @@ if __name__ == "__main__":
         for label in xrange(n_classes):
             assignment_mask[np.isin(classes, label)] = colors[label]
 
-        assignment_mask = cv2.resize(assignment_mask, image_size, interpolation=cv2.INTER_CUBIC)
+        assignment_mask = cv2.resize(assignment_mask, image_size, interpolation=cv2.INTER_NEAREST)
 
         overlay = class_label_overlay(frame, assignment_mask)
 
