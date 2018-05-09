@@ -8,19 +8,14 @@ from OpenGL.GLU import *
 
 import cv2
 import numpy as np
-import yaml
 import os
 from keras.models import model_from_json
-from utils import get_depth, get_video, prepare_images, class_label_overlay, get_spaced_colors, Canonicalize
-
-parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument("model_name", help="Specify the name of the model to train.", default="squeezenet")
-
-args = parser.parse_args()
-
-MODEL_NAME = args.model_name.lower()
-
-print(MODEL_NAME)
+from utils import prepare_images, class_label_overlay
+import tensorflow as tf
+import sys
+import rospy
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge, CvBridgeError
 
 clock = pygame.time.Clock()
 
@@ -115,73 +110,102 @@ glBufferData(GL_ARRAY_BUFFER,
 glEnableClientState(GL_COLOR_ARRAY)
 glColorPointer(3, GL_FLOAT, 0, None)
 
+graph = tf.get_default_graph()
+
+class image_converter:
+
+    def __init__(self, model_name, weight_path):
+        self.image_pub = rospy.Publisher("/camera/rgb/image_classification", Image)
+
+        self.bridge = CvBridge()
+        self.image_sub = rospy.Subscriber("/camera/rgb/image_raw", Image, self.callback)
+
+        self.model_name = model_name
+        self.weight_path = weight_path
+
+        self.model_name = model_name
+        self.weight_path = weight_path
+
+        self.n_slices = 6
+        self.ratio = (4, 3)
+        self.image_size = (640, 480)
+
+        self.height = self.n_slices * self.ratio[1]
+        self.width = self.n_slices * self.ratio[0]
+
+
+
+        self.colors = [(255, 255, 255), (0, 128, 0)]
+
+        # load json and create model
+        json_file = open(os.path.join(self.weight_path, self.model_name + ".json"), "r")
+        loaded_model_json = json_file.read()
+        json_file.close()
+        self.model = model_from_json(loaded_model_json)
+        # load weights into new model
+        self.model.load_weights(os.path.join(self.weight_path, self.model_name + ".h5"))
+        print("Loaded model from disk")
+
+    def callback(self, data):
+        try:
+            cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
+        except CvBridgeError as e:
+            print(e)
+
+        print(cv_image.shape)
+
+        with graph.as_default():
+
+
+            X = prepare_images(cv_image, self.image_size, self.ratio, self.n_slices)
+            print(X.shape)
+            X = X.astype(np.float32)
+
+            preds = self.model.predict(X)
+            labels = np.argmax(preds, axis=1).reshape((self.n_slices, self.n_slices))
+
+            # Initialize the class assignment mask.
+            assignment_mask = np.zeros((labels.shape[0], labels.shape[1], 3))
+
+            # Fill class labels into assignment mask.
+            for label in xrange(len(2)):
+                assignment_mask[np.isin(labels, label)] = self.colors[label]
+
+            assignment_mask = cv2.resize(assignment_mask, self.image_size, interpolation=cv2.INTER_NEAREST)
+
+            overlay = class_label_overlay(cv_image, assignment_mask, mask_opacity=0.3)
+
+
+            cv2.imshow("img", cv_image)
+            cv2.imshow("overlay", overlay)
+            print(labels)
+
+        cv2.imshow("img", cv_image)
+
+        try:
+            self.image_pub.publish(self.bridge.cv2_to_imgmsg(cv_image, "bgr8"))
+        except CvBridgeError as e:
+            print(e)
+
+
+
 if __name__ == "__main__":
 
-    # Load config
-    with open('models/{}_config.yml'.format(MODEL_NAME), 'r') as config_file:
-        config = yaml.load(config_file)
+    print(os.getcwd())
+    if len(sys.argv) < 3:
+        model_name = "small"
+        weight_path = "weights"
+    else:
+        weight_path = sys.argv[1]
+        model_name = sys.argv[2]
 
-    print(config)
+    ic = image_converter(model_name, weight_path)
+    rospy.init_node('image_converter', anonymous=True)
+    try:
+        rospy.spin()
+    except KeyboardInterrupt:
+        print("Shutting down")
+        cv2.destroyAllWindows()
 
-    n_slices = config['input_config']['n_slices']
-    ratio = config['input_config']['ratio']
-    image_size = config['input_config']['image_size']
-    slice_height = config['input_config']['slice_height']
-    slice_width = config['input_config']['slice_width']
-    classes = config['input_config']['classes']
-    n_slices_v = config['input_config']['n_slices_v']
-    n_slices_h = config['input_config']['n_slices_h']
 
-    # load json and create model
-    json_file = open(os.path.join('models', MODEL_NAME + ".json"), 'r')
-    model_json = json_file.read()
-    json_file.close()
-    model = model_from_json(model_json)
 
-    # load weights into new model
-    model.load_weights(os.path.join('models', MODEL_NAME + ".h5"))
-    print("Loaded model from disk")
-
-    colors = [(255, 255, 255), (0, 128, 0)]
-
-    while True:
-
-        # get a frame from RGB camera
-        frame = get_video()
-        # get a frame from depth sensor
-        depth = get_depth()
-
-        X = prepare_images(frame, image_size, ratio, n_slices)
-        X = X.astype(np.float32)
-
-        preds = model.predict(X)
-        labels = np.argmax(preds, axis=1).reshape((n_slices_h, n_slices_v))
-
-        # Initialize the class assignment mask.
-        assignment_mask = np.zeros((labels.shape[0], labels.shape[1], 3))
-
-        # Fill class labels into assignment mask.
-        for label in xrange(len(classes)):
-            assignment_mask[np.isin(labels, label)] = colors[label]
-
-        assignment_mask = cv2.resize(assignment_mask, image_size, interpolation=cv2.INTER_NEAREST)
-
-        overlay = class_label_overlay(frame, assignment_mask, mask_opacity=0.3)
-
-        overlay[np.isin(depth, xrange(1200))] = (0, 0, 0)
-
-        # overlay = cv2.resize(overlay, (800, 800), interpolation=cv2.INTER_CUBIC)
-        # depth = cv2.resize(depth, (800, 800), interpolation=cv2.INTER_CUBIC)
-
-        frame_init(overlay.astype(np.float32), depth.astype(np.float32))
-
-        cv2.imshow("img", frame)
-        cv2.imshow("depth", depth.astype(np.uint8))
-        cv2.imshow("overlay", overlay)
-        print(labels)
-
-        # quit program when 'esc' key is pressed
-        k = cv2.waitKey(5) & 0xFF
-        if k == 27:
-            break
-    cv2.destroyAllWindows()

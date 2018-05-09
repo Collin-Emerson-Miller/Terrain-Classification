@@ -3,7 +3,6 @@ from __future__ import division
 from __future__ import print_function
 
 import cv2
-import freenect
 import numpy as np
 import math
 from keras.utils import to_categorical
@@ -44,7 +43,8 @@ def prepare_images(image, size, ratio, n_slices):
     for y in range(width):
         for x in range(height):
             tl_corner = (x * slice_height, y * slice_width)
-            imgs.append(crop_2d(image, tl_corner, height=slice_height, width=slice_width))
+            imgs.append(crop_2d(image, tl_corner, height=height, width=width))
+            print(imgs[-1].shape)
 
     return np.stack(imgs)
 
@@ -99,19 +99,6 @@ def input_image_generator(image_list, label_list, image_size, ratio, n_slices):
             one_hot_labels = to_categorical(labels, num_classes=num_classes)
 
             yield slices, one_hot_labels
-
-
-# function to get RGB image from kinect
-def get_video():
-    array, _ = freenect.sync_get_video()
-    return array
-
-
-# function to get depth image from kinect
-def get_depth():
-    array, _ = freenect.sync_get_depth()
-    return array
-
 
 def Canonicalize(Depth):
     Aspect = Depth.shape[0] / Depth.shape[1]
