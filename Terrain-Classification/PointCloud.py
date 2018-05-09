@@ -31,7 +31,7 @@ def frame_init(rgb, depth):
 
     Depth = np.swapaxes(depth, 0, 1)
     Depth = np.flip(Depth,1)
-    # Depth = np.divide(Depth, 0xFFFF)  # Normalize into [0,1] range
+    #Depth = np.divide(Depth, 0b11111111111)  # Normalize into [0,1] range
     Depth = (Depth - Depth.min())/(Depth.max() - Depth.min())
 
 
@@ -40,18 +40,18 @@ def frame_init(rgb, depth):
     PointColor = list(Color.flatten())
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo)
-    glBufferData(GL_ARRAY_BUFFER,
+    glBufferSubData(GL_ARRAY_BUFFER,
+                    0,
                  len(PointCloud) * 4,
-                 (ctypes.c_float * len(PointCloud))(*PointCloud),
-                 GL_DYNAMIC_DRAW)
+                 (ctypes.c_float * len(PointCloud))(*PointCloud))
     glEnableClientState(GL_VERTEX_ARRAY)
     glVertexPointer(3, GL_FLOAT, 0, None)
 
     glBindBuffer(GL_ARRAY_BUFFER, cbo)
-    glBufferData(GL_ARRAY_BUFFER,
+    glBufferSubData(GL_ARRAY_BUFFER,
+                    0,
                  len(PointColor) * 4,
-                 (ctypes.c_float * len(PointColor))(*PointColor),
-                 GL_DYNAMIC_DRAW)
+                 (ctypes.c_float * len(PointColor))(*PointColor))
     glEnableClientState(GL_COLOR_ARRAY)
     glColorPointer(3, GL_FLOAT, 0, None)
 
@@ -75,7 +75,7 @@ glLoadIdentity()
 gluPerspective(45, (display[0] / display[1]), 0.01, 100.0)
 glMatrixMode(GL_MODELVIEW)
 glLoadIdentity()
-gluLookAt(0.5, 0.5, 1.5,
+gluLookAt(2.5, 1.5, 2.5,
           -0.5, -0.5, -0.5,
           0.0, 1.0, 0.0)
 
@@ -83,10 +83,18 @@ gluLookAt(0.5, 0.5, 1.5,
 vbo = glGenBuffers(1)
 cbo = glGenBuffers(1)
 glBindBuffer(GL_ARRAY_BUFFER, vbo)
+glBufferData(GL_ARRAY_BUFFER,
+             640*480 * 3 * 4,
+             None,
+             GL_STREAM_DRAW)
 glEnableClientState(GL_VERTEX_ARRAY)
 glVertexPointer(3, GL_FLOAT, 0, None)
 
 glBindBuffer(GL_ARRAY_BUFFER, cbo)
+glBufferData(GL_ARRAY_BUFFER,
+             640*480 * 3 * 4,
+             None,
+             GL_STREAM_DRAW)
 glEnableClientState(GL_COLOR_ARRAY)
 glColorPointer(3, GL_FLOAT, 0, None)
 
@@ -105,9 +113,4 @@ if __name__ == "__main__":
         cv2.imshow("Depth", depth.astype(np.uint8))
 
         frame_init(frame.astype(np.float32), depth.astype(np.float32))
-
-        # quit program when 'esc' key is pressed
-        k = cv2.waitKey(5) & 0xFF
-        if k == 27:
-            break
     cv2.destroyAllWindows()
