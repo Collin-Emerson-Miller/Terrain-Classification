@@ -25,7 +25,6 @@ parser.add_argument("--gray", help="Train network with gray-scale images.")
 
 args = parser.parse_args()
 
-from keras.layers import Input
 
 MODEL_NAME = args.model_name.lower()
 CORPUS_PATH = args.corpus_path
@@ -76,31 +75,20 @@ with open("config.txt", "w") as f:
 
 g = utils.input_image_generator(image_list, label_list, IMAGE_SIZE, RATIO, N_SLICES)
 
-a = next(g)[0][0]
+image = next(g)[0][0]
 
 if MODEL_NAME == "vgg16":
-    print("Using vgg16")
-    input_tensor = Input(a.shape, dtype=a.dtype)
-    from keras.applications.vgg16 import VGG16
-
-    model = VGG16(classes=len(classes), weights=None, input_tensor=input_tensor)
+    from models import vgg16
+    model = vgg16.Vgg16(input_shape=image.shape, n_classes=n_classes)
 elif MODEL_NAME == "resnet50":
-    print("Using resnet50")
-    input_tensor = Input(a.shape, dtype=a.dtype)
-    from keras.applications.resnet50 import ResNet50
-
-    model = ResNet50(classes=len(classes), weights=None, input_tensor=input_tensor)
+    from models import resnet50
+    model = resnet50.ResNet50(input_shape=image.shape, n_classes=n_classes)
 elif MODEL_NAME == "simplenet":
     from models import simplenet
-    model = simplenet.get_model(a.shape, n_classes)
-
-
-
+    model = simplenet.get_model(input_shape=image.shape, n_classes=n_classes)
 else:
-    print("Using inceptionV3")
-    from keras.applications.inception_v3 import InceptionV3
-    input_tensor = Input(a.shape, dtype=a.dtype)
-    model = InceptionV3(classes=len(classes), weights=None, input_tensor=input_tensor)
+    from models import inceptionv3
+    model = inceptionv3.IncveptionV3(input_shape=image.shape, n_classes=n_classes)
 
 print("Compiling Model...")
 model.compile(optimizer='rmsprop',
