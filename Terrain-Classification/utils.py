@@ -32,7 +32,6 @@ def crop_2d(image, top_left_corner, height, width):
 
 
 def prepare_images(image, size, ratio, n_slices):
-
     height = n_slices * ratio[1]
     width = n_slices * ratio[0]
 
@@ -116,22 +115,24 @@ def get_depth():
 def Canonicalize(Depth):
     Aspect = Depth.shape[0] / Depth.shape[1]
     return [
-        ((X / Depth.shape[0]) * Aspect - 0.5 * Aspect, Y / Depth.shape[1] - 0.5,Depth[X, Y])
+        ((X / Depth.shape[0]) * Aspect - 0.5 * Aspect, Y / Depth.shape[1] - 0.5, Depth[X, Y])
         for X in range(Depth.shape[0])
         for Y in range(Depth.shape[1])
     ]
+
 
 def class_label_overlay(img, assignment_mask, mask_opacity=.5):
     # assignment mask needs to be of type uint8 to lay mask over image.
     output = img.copy()
     assignment_mask = assignment_mask.astype('uint8')
-    
+
     # Apply mask to image.
     overlay = assignment_mask
     output = cv2.addWeighted(overlay, mask_opacity, output, 1 - mask_opacity,
-                    0, overlay)
-    
+                             0, overlay)
+
     return output
+
 
 def get_spaced_colors(n):
     max_value = 16581375  # 255**3
