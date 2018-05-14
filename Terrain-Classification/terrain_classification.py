@@ -1,116 +1,19 @@
 # import the necessary modules
 from __future__ import division
 
-import argparse
-import pygame
-from OpenGL.GL import *
-from OpenGL.GLU import *
-
 import cv2
 import numpy as np
 import os
 from keras.models import model_from_json
-from utils import prepare_images, class_label_overlay
+from utils import prepare_images, get_spaced_colors
 import tensorflow as tf
 import sys
 import rospy
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 
-clock = pygame.time.Clock()
-
-
-def Origin():
-    glBegin(GL_LINES)
-    glColor3f(1, 0, 0)
-    glVertex3f(0, 0, 0)
-    glVertex3f(1, 0, 0)
-    glColor3f(0, 1, 0)
-    glVertex3f(0, 0, 0)
-    glVertex3f(0, 1, 0)
-    glColor3f(0, 0, 1)
-    glVertex3f(0, 0, 0)
-    glVertex3f(0, 0, 1)
-    glEnd()
-    return
-
-
-def frame_init(rgb, depth):
-    Color = np.swapaxes(rgb, 0, 1)
-    Color = np.flip(Color, 1)
-    Color = np.divide(Color, 0xFF)  # Normalize into [0,1] range
-
-    Depth = np.swapaxes(depth, 0, 1)
-    Depth = np.flip(Depth, 1)
-    Depth = 3 * np.divide(Depth, 0b11111111111)  # Normalize into [0,1] range
-
-    PointCloud = Canonicalize(Depth)
-    PointCloud = list(np.array(PointCloud, dtype=np.float32).flatten())
-    PointColor = list(Color.flatten())
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbo)
-    glBufferSubData(GL_ARRAY_BUFFER,
-                    0,
-                    len(PointCloud) * 4,
-                    (ctypes.c_float * len(PointCloud))(*PointCloud))
-    glEnableClientState(GL_VERTEX_ARRAY)
-    glVertexPointer(3, GL_FLOAT, 0, None)
-
-    glBindBuffer(GL_ARRAY_BUFFER, cbo)
-    glBufferSubData(GL_ARRAY_BUFFER,
-                    0,
-                    len(PointColor) * 4,
-                    (ctypes.c_float * len(PointColor))(*PointColor))
-    glEnableClientState(GL_COLOR_ARRAY)
-    glColorPointer(3, GL_FLOAT, 0, None)
-
-    glMatrixMode(GL_MODELVIEW)
-    glRotatef(10 * (clock.tick() / 1000), 0, 1, 0);
-
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-    glDrawArrays(GL_POINTS, 0, len(PointCloud))
-    Origin()
-    pygame.display.flip()
-
-
-# Run once
-pygame.init()
-display = (800, 600)
-pygame.display.set_mode(display, pygame.DOUBLEBUF | pygame.OPENGL)
-
-glEnable(GL_DEPTH_TEST)
-glDepthFunc(GL_LESS)
-
-# Camera
-glMatrixMode(GL_PROJECTION)
-glLoadIdentity()
-gluPerspective(45, (display[0] / display[1]), 0.01, 100.0)
-glMatrixMode(GL_MODELVIEW)
-glLoadIdentity()
-gluLookAt(2.5, 1.5, 2.5,
-          -0.5, -0.5, -0.5,
-          0.0, 1.0, 0.0)
-
-# Mesh
-vbo = glGenBuffers(1)
-cbo = glGenBuffers(1)
-glBindBuffer(GL_ARRAY_BUFFER, vbo)
-glBufferData(GL_ARRAY_BUFFER,
-             640 * 480 * 3 * 4,
-             None,
-             GL_STREAM_DRAW)
-glEnableClientState(GL_VERTEX_ARRAY)
-glVertexPointer(3, GL_FLOAT, 0, None)
-
-glBindBuffer(GL_ARRAY_BUFFER, cbo)
-glBufferData(GL_ARRAY_BUFFER,
-             640 * 480 * 3 * 4,
-             None,
-             GL_STREAM_DRAW)
-glEnableClientState(GL_COLOR_ARRAY)
-glColorPointer(3, GL_FLOAT, 0, None)
-
 graph = tf.get_default_graph()
+
 
 class image_converter:
 
@@ -133,9 +36,7 @@ class image_converter:
         self.height = self.n_slices * self.ratio[1]
         self.width = self.n_slices * self.ratio[0]
 
-
-
-        self.colors = [(255, 255, 255), (0, 128, 0)]
+        self.colors = get_spaced_colors(self.n_classes)
 
         # load json and create model
         json_file = open(os.path.join(self.weight_path, self.model_name + ".json"), "r")
@@ -152,10 +53,7 @@ class image_converter:
         except CvBridgeError as e:
             print(e)
 
-        print(cv_image.shape)
-
         with graph.as_default():
-
 
             X = prepare_images(cv_image, self.image_size, self.ratio, self.n_slices)
             print(X.shape)
@@ -171,22 +69,14 @@ class image_converter:
             for label in xrange(len(2)):
                 assignment_mask[np.isin(labels, label)] = self.colors[label]
 
+            # Expand Classifications.
             assignment_mask = cv2.resize(assignment_mask, self.image_size, interpolation=cv2.INTER_NEAREST)
 
-            overlay = class_label_overlay(cv_image, assignment_mask, mask_opacity=0.3)
-
-
-            cv2.imshow("img", cv_image)
-            cv2.imshow("overlay", overlay)
-            print(labels)
-
-        cv2.imshow("img", cv_image)
-
+        # Publish classifications.
         try:
-            self.image_pub.publish(self.bridge.cv2_to_imgmsg(cv_image, "bgr8"))
+            self.image_pub.publish(self.bridge.cv2_to_imgmsg(assignment_mask, "bgr8"))
         except CvBridgeError as e:
             print(e)
-
 
 
 if __name__ == "__main__":
@@ -206,6 +96,3 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("Shutting down")
         cv2.destroyAllWindows()
-
-
-
