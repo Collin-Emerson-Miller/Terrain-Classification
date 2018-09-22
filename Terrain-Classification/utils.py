@@ -3,7 +3,6 @@ from __future__ import division
 from __future__ import print_function
 
 import cv2
-import freenect
 import numpy as np
 import math
 from keras.utils import to_categorical
