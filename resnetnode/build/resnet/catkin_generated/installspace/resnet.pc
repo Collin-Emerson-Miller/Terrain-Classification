@@ -1,0 +1,8 @@
+prefix=/home/phu/Documents/resnetnode/install
+
+Name: resnet
+Description: Description of resnet
+Version: 0.0.0
+Cflags: 
+Libs: -L/home/phu/Documents/resnetnode/install/lib 
+Requires: 

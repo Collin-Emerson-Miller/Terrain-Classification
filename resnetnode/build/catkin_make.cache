@@ -1,0 +1,2 @@
+realsense-2.1.0/realsense2_camera:resnet
+-DCATKIN_ENABLE_TESTING=False -DCMAKE_BUILD_TYPE=Release -DCATKIN_DEVEL_PREFIX=/home/phu/Documents/resnetnode/devel -DCMAKE_INSTALL_PREFIX=/home/phu/Documents/resnetnode/install -G Unix Makefiles
