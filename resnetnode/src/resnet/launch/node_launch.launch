@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<launch>
+
+    <node name="publish_img" pkg="resnet" type="imagepub.py" respawn="false" />
+    <node name="run_model" pkg="resnet" type="helloworld.py" respawn="false" />
+    <node name="identity_node" pkg="resnet" type="identity_node.py" respawn="false" />
+    <node name="mixer_node" pkg="resnet" type="mixer_node.py" respawn="false" />
+    
+</launch>

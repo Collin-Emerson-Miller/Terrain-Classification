@@ -6,7 +6,7 @@ import numpy as np
 
 
 def listener():
-    rospy.init_node('Identity_node')
+    rospy.init_node('Aug_node')
     #image_topic = "/camera/color/image_raw"
     topic = "/terrain_scores_raw"
     rospy.Subscriber(topic, numpy_msg(Floats), callback)
