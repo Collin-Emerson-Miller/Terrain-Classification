@@ -10,3 +10,5 @@ resnetnode/build/
 resnetnode/src/resnet/src/model\.h5
 
 resnetnode/src/resnet/src/model\.json
+
+resnetnode/\.catkin_workspace
